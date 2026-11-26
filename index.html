@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cruce Urbano AR</title>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#004597;font-family:system-ui,sans-serif}
+#tip{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9;background:#FF0064;color:#fff;font-weight:800;
+padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;white-space:nowrap}
+</style></head><body>
+<div id="tip">APUNTÁ A LA POSTAL</div>
+<div id="raiz"></div>
+<script>
+const DEMO = +new URLSearchParams(location.search).get("demo");
+document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
+  color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets>
+    <img id="key" src="capas/key.webp"><img id="patineta" src="capas/patineta.webp"><img id="new_cuerpo" src="capas/new_cuerpo.webp"><img id="new_pierna" src="capas/new_pierna.webp"><img id="new_pierna2" src="capas/new_pierna2.webp">
+    <img id="rueda0" src="capas/rueda0.webp"><img id="rueda2" src="capas/rueda2.webp"><img id="ejes" src="capas/ejes.webp">
+    <img id="mancha" src="capas/mancha.webp">
+    <img id="m_x" src="capas/m_x.webp"><img id="m_o" src="capas/m_o.webp"><img id="m_s" src="capas/m_s.webp">
+    <img id="m_l" src="capas/m_l.webp"><img id="m_c" src="capas/m_c.webp">
+  </a-assets>
+  <a-camera position="0 0 ${DEMO ? 0.95 : 0}" look-controls="enabled: false"></a-camera>
+</a-scene>`;
+// Cada postal (targetIndex 0,1,2): capas a distinta altura (z) = efecto pop-up. Al encontrarla salen con rebote y flotan.
+// [id, x, y, z, ancho, alto, demora ms]   (la postal mide 1 x 0.667; el centro es 0,0)
+const MISC = [["m_x",-.42,.25,.32,.11,.088],["m_o",.40,.27,.38,.09,.092],["m_s",.43,-.22,.30,.1,.084],["m_c",-.40,-.24,.35,.12,.026],["m_l",.05,.33,.28,.14,.022]];
+const PAT = [.18, .02, .82, .66], RUEDAS = [[.161, .243], [.095, .519], [.772, .79], [.545, .902]];
+const GIRO = {   // animaciones de las piezas que giran sobre un pivote
+  patea:  "from: 0 0 -14; to: 0 0 16; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
+  patea2: "from: 0 0 5; to: 0 0 -5; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
+  rueda:  "from: 0 0 0; to: 0 0 -1080; loop: true; dur: 3200; easing: easeInCubic"};   // lento -> rapido, en loop
+const POSTALES = [
+  {capas: [["mancha",-.18,-.06,.04,.68,.312,0],["key",-.18,.02,.22,.78,.637,150]]},
+  {capas: [["mancha",.18,-.06,.04,.68,.312,0],["patineta",PAT[0],PAT[1],.22,PAT[2],PAT[3],150]]
+     .concat(RUEDAS.map((c, k) => ["rueda" + k, c]).filter((r, k) => k % 2 === 0).map(([id, c]) => [id, PAT[0], PAT[1], .225, PAT[2], PAT[3], 150, false, {pivote: c, anim: "rueda"}]))
+     .concat([["ejes", PAT[0], PAT[1], .23, PAT[2], PAT[3], 150]])},
+  {capas: [["new_pierna",-.18,.02,.21,.62,.84,0,false,{pivote:[.175,.43], anim: "patea"}],
+           ["new_pierna2",-.18,.02,.215,.62,.84,0,false,{pivote:[.437,.372], anim: "patea2"}],["new_cuerpo",-.18,.02,.22,.62,.84,0]]},
+];
+let skate = null;
+const scene = document.querySelector("a-scene"), tip = document.getElementById("tip");
+POSTALES.forEach((p, i) => {
+  const t = document.createElement("a-entity"); t.setAttribute("mindar-image-target", "targetIndex: " + i);
+  const capas = p.capas.concat(MISC.map((m, k) => [m[0], m[1], m[2], m[3], m[4], m[5], 300 + k * 70, true]));
+  capas.forEach(([id, x, y, z, w, h, demora, esMisc, extra]) => {
+    const g = document.createElement("a-entity");                 // grupo: flota (posicion)
+    g.setAttribute("position", `${x} ${y} ${z}`);
+    g.setAttribute("animation__flota", `property: position; to: ${x} ${y + (esMisc ? .02 : .012)} ${z + .03}; dir: alternate; loop: true; dur: ${1600 + demora}; easing: easeInOutSine`);
+    let im = document.createElement("a-image");                    // imagen: sale con rebote (escala) y las misc giran
+    const img = im; img.setAttribute("src", "#" + id); img.setAttribute("width", w); img.setAttribute("height", h);
+    img.setAttribute("material", "transparent: true; alphaTest: 0.02; shader: flat");
+    if (extra && extra.pivote) {                                    // pieza que gira sobre un pivote (piernas, ruedas)
+      const px = (extra.pivote[0] - .5) * w, py = (.5 - extra.pivote[1]) * h;
+      im = document.createElement("a-entity"); const pv = document.createElement("a-entity");
+      pv.setAttribute("position", `${px} ${py} 0`); img.setAttribute("position", `${-px} ${-py} 0`);
+      pv.setAttribute("animation__giro", "property: rotation; " + GIRO[extra.anim]);
+      pv.appendChild(img); im.appendChild(pv);
+    }
+    if (id === "key") skate = img;
+    im.setAttribute("scale", "0.001 0.001 0.001");
+    im.setAttribute("animation__sale", `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 1100; delay: ${demora}; easing: easeOutElastic; elasticity: 500; startEvents: sale`);
+    if (esMisc) im.setAttribute("animation__gira", `property: rotation; to: 0 0 ${k360(id)}; loop: true; dur: 6000; easing: linear`);
+    g.appendChild(im); t.appendChild(g);
+  });
+  t.addEventListener("targetFound", () => { tip.style.opacity = 0; [...t.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
+  t.addEventListener("targetLost", () => { tip.style.opacity = 1; [...t.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
+  if (DEMO) {                                                       // demo: solo la postal elegida, inclinada para ver las capas
+    if (i !== DEMO - 1) return;
+    t.removeAttribute("mindar-image-target"); t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
+    const fondo = document.createElement("a-image"); fondo.setAttribute("src", `targets/postal${i + 1}.jpg`);
+    fondo.setAttribute("width", 1); fondo.setAttribute("height", .667); fondo.setAttribute("material", "shader: flat"); t.prepend(fondo);
+    scene.addEventListener("loaded", () => setTimeout(() => t.emit("targetFound"), 600));
+  }
+  scene.appendChild(t);
+});
+// SKATE (postal 1): se balancea solo + el usuario lo mueve arrastrando el dedo; al soltar vuelve con un rebote (resorte)
+let arr = 0, vel = 0, x0 = null;
+const ini = e => x0 = (e.touches ? e.touches[0] : e).clientX, fin = () => x0 = null;
+const mov = e => { if (x0 === null) return; const x = (e.touches ? e.touches[0] : e).clientX; arr = Math.max(-1, Math.min(1, arr + (x - x0) / 180)); x0 = x; };
+addEventListener("touchstart", ini); addEventListener("touchmove", mov); addEventListener("touchend", fin);
+addEventListener("mousedown", ini); addEventListener("mousemove", mov); addEventListener("mouseup", fin);
+(function loop(t) {
+  if (x0 === null) { vel = (vel - arr * 0.02) * 0.92; arr += vel; }                     // resorte de vuelta
+  if (skate) { const b = Math.sin(t / 450) * 0.12; skate.object3D.rotation.z = b - arr * 0.45; skate.object3D.position.x = Math.sin(t / 900) * .03 + arr * .14; }
+  requestAnimationFrame(loop);
+})(0);
+function k360(id) { return id === "m_o" || id === "m_c" ? -360 : 360; }
+</script>
+</body></html>
