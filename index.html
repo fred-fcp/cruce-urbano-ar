@@ -15,7 +15,7 @@ padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;
 <script>
 const V = 3;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
-document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=${V}; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
+document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
   color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-assets>
     <img id="key" src="capas/key.webp?v=${V}"><img id="patineta" src="capas/patineta.webp?v=${V}"><img id="new_cuerpo" src="capas/new_cuerpo.webp?v=${V}"><img id="new_pierna" src="capas/new_pierna.webp?v=${V}"><img id="new_pierna2" src="capas/new_pierna2.webp?v=${V}">
