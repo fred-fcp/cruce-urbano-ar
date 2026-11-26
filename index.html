@@ -13,9 +13,9 @@ padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;
 <div id="tip">APUNTÁ A LA POSTAL O A LA ILUSTRACIÓN</div>
 <div id="raiz"></div>
 <script>
-const V = 5;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
+const V = 6;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
-const IMGS = "key patineta new_cuerpo new_pierna new_pierna2 rueda0 rueda2 ejes frase_new frase_pat ondas destellos m_x m_o m_s m_l m_c".split(" ");
+const IMGS = "key patineta new_cuerpo new_pierna new_pierna2 rueda0 rueda2 ejes frase_new frase_pat ondas destellos sombra_key sombra_patineta sombra_new sombra_frase_new sombra_frase_pat m_x m_o m_s m_l m_c".split(" ");
 document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
   color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-assets>${IMGS.map(n => `<img id="${n}" src="capas/${n}.webp?v=${V}">`).join("")}</a-assets>
@@ -29,24 +29,28 @@ const GIRO = {   // piezas que giran sobre un pivote
   patea:  "from: 0 0 -14; to: 0 0 16; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
   patea2: "from: 0 0 5; to: 0 0 -5; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
   rueda:  "from: 0 0 0; to: 0 0 -1080; loop: true; dur: 3200; easing: easeInCubic"};   // lento -> rapido, en loop
-const ONDA = w => ["ondas", 0, w, .03, 1.04, .151, 0, {ola: true}];                     // la onda rosa de abajo (se mueve como agua)
+const ONDA = w => ["ondas", 0, w, .03, 1.04, .151, 0, {ola: true}];
+// PROFUNDIDAD: cada ilustracion/frase lleva una sombra sobre la postal (corrida hacia abajo a la derecha) y "grosor" (copias oscuras detras)
+const SOMBRA = (id, x, y, w, h, demora, rot = 0) => { const p = .16 * Math.max(w, h); return ["sombra_" + id, x + .014, y - .02, .006, w + p, h + p, demora, {sombra: true, rot}]; };                     // la onda rosa de abajo (se mueve como agua)
 const PAT = [.2028, .0541, .4851, .3909, -16.28], NEW = [-.2167, .0081, .4435, .6005];
 const POSTALES = [
-  {ilu: [-.1866, .0141, .5631, 0], capas: [ONDA(-.2894), ["key", -.1866, .0141, .22, .5631, .4603, 150]]},
-  {ilu: [PAT[0], PAT[1], PAT[2], PAT[4]], capas: [ONDA(-.2843), ["destellos", .1968, -.0033, .1, .5197, .4822, 0, {destello: true}]]
+  {ilu: [-.1866, .0141, .5631, 0], capas: [ONDA(-.3086), SOMBRA("key", -.1866, .0141, .5631, .4603, 150),
+     ["key", -.1866, .0141, .22, .5631, .4603, 150, {grosor: true}]]},
+  {ilu: [PAT[0], PAT[1], PAT[2], PAT[4]], capas: [ONDA(-.3036), ["destellos", .1968, -.0033, .1, .5197, .4822, 0, {destello: true}],
+     SOMBRA("patineta", PAT[0], PAT[1], PAT[2], PAT[3], 150, PAT[4])]
      .concat([["patineta"], ["rueda0", .161, .243], ["rueda2", .772, .79], ["ejes"]].map(([id, px, py], k) =>
-       [id, PAT[0], PAT[1], .22 + k * .004, PAT[2], PAT[3], 150, {rot: PAT[4], truco: true, ...(px ? {pivote: [px, py], anim: "rueda"} : {})}]))
-     .concat([["frase_pat", -.24, .33, .36, .38, .27, 550, {frase: true}]])},
-  {ilu: [NEW[0], NEW[1], NEW[2], 0], capas: [ONDA(-.2899),
-     ["new_pierna", ...NEW.slice(0, 2), .21, NEW[2], NEW[3], 0, {pivote: [.175, .43], anim: "patea"}],
-     ["new_pierna2", ...NEW.slice(0, 2), .215, NEW[2], NEW[3], 0, {pivote: [.437, .372], anim: "patea2"}],
-     ["new_cuerpo", ...NEW.slice(0, 2), .22, NEW[2], NEW[3], 0],
-     ["frase_new", -.0707, .0498, .36, .1733, .1133, 450, {frase: true}]]},
+       [id, PAT[0], PAT[1], .22 + k * .004, PAT[2], PAT[3], 150, {rot: PAT[4], truco: true, grosor: true, ...(px ? {pivote: [px, py], anim: "rueda"} : {})}]))
+     .concat([SOMBRA("frase_pat", -.24, .33, .38, .316, 550), ["frase_pat", -.24, .33, .36, .38, .316, 550, {frase: true, grosor: true}]])},
+  {ilu: [NEW[0], NEW[1], NEW[2], 0], capas: [ONDA(-.3092), SOMBRA("new", ...NEW, 0),
+     ["new_pierna", ...NEW.slice(0, 2), .21, NEW[2], NEW[3], 0, {pivote: [.175, .43], anim: "patea", grosor: true}],
+     ["new_pierna2", ...NEW.slice(0, 2), .215, NEW[2], NEW[3], 0, {pivote: [.437, .372], anim: "patea2", grosor: true}],
+     ["new_cuerpo", ...NEW.slice(0, 2), .22, NEW[2], NEW[3], 0, {grosor: true}],
+     SOMBRA("frase_new", -.0707, .0499, .1734, .1134, 450), ["frase_new", -.0707, .0499, .24, .1734, .1134, 450, {frase: true, grosor: true}]]},
 ];
 // MARCADORES (orden de targets.mind): las 3 postales (solo el lado de la ilustracion) + las 3 ilustraciones solas, para que la
 // AR funcione tambien al escanearlas en el afiche, la aficheta u otra pieza. [postal, centro x, centro y, ancho, giro]
 // (centro/ancho/giro = que parte de la postal es el marcador; el grupo lleva todo a esas medidas)
-const MARCADORES = [[0, -.2065, .0737, .5869, 0], [1, .2144, .0737, .5711, 0], [2, -.2065, .0737, .5869, 0]]
+const MARCADORES = [[0, -.2097, .0802, .5806, 0], [1, .2177, .0802, .5645, 0], [2, -.2097, .0802, .5806, 0]]
   .concat(POSTALES.map((p, i) => [i, p.ilu[0], p.ilu[1], p.ilu[2], p.ilu[3]]));
 const TIPS = ["ARRASTRÁ EL SKATE CON EL DEDO", "TOCÁ LA PANTALLA: ¡HACÉ UN TRUCO!", ""];
 const scene = document.querySelector("a-scene"), tip = document.getElementById("tip"), skates = [];
@@ -62,7 +66,7 @@ MARCADORES.forEach(([pi, cx, cy, wt, rot], i) => {
   POSTALES[pi].capas.concat(MISC.map((m, n) => [...m, 300 + n * 70, {misc: true}])).forEach(([id, x, y, z, w, h, demora, ex = {}]) => {
     const g = document.createElement("a-entity");                  // grupo: posicion, giro de base y flotacion
     g.setAttribute("position", `${x} ${y} ${z}`); if (ex.rot) g.setAttribute("rotation", `0 0 ${ex.rot}`);
-    if (!ex.ola) g.setAttribute("animation__flota", `property: position; to: ${x} ${y + (ex.misc ? .02 : .012)} ${z + .03}; dir: alternate; loop: true; dur: ${1600 + demora}; easing: easeInOutSine`);
+    if (!ex.ola && !ex.sombra) g.setAttribute("animation__flota", `property: position; to: ${x} ${y + (ex.misc ? .02 : .012)} ${z + .03}; dir: alternate; loop: true; dur: ${1600 + demora}; easing: easeInOutSine`);
     const img = document.createElement("a-image");
     img.setAttribute("src", "#" + id); img.setAttribute("width", w); img.setAttribute("height", h);
     img.setAttribute("material", "transparent: true; alphaTest: 0.02; shader: flat");
@@ -80,6 +84,10 @@ MARCADORES.forEach(([pi, cx, cy, wt, rot], i) => {
       o2.setAttribute("animation__s", "property: scale; from: 1 .8 1; to: 1 1.25 1; dir: alternate; loop: true; dur: 1300; easing: easeInOutSine");
       o2.appendChild(img); o1.appendChild(o2); im.appendChild(o1);
     }
+    if (ex.grosor) for (let n = 1; n <= 4; n++) {                   // grosor: copias oscuras apiladas detras (se ve el canto al inclinar)
+      const c = document.createElement("a-image"); c.setAttribute("src", "#" + id); c.setAttribute("width", w); c.setAttribute("height", h);
+      c.setAttribute("position", `0 0 ${-n * .006}`); c.setAttribute("material", "transparent: true; alphaTest: 0.5; shader: flat; color: #2b3166"); img.appendChild(c);
+    }
     if (ex.destello) img.setAttribute("animation__brilla", "property: scale; from: .94 .94 1; to: 1.06 1.06 1; dir: alternate; loop: true; dur: 700; easing: easeInOutSine");
     im.setAttribute("scale", "0.001 0.001 0.001");
     im.setAttribute("animation__sale", `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 1100; delay: ${demora}; easing: easeOutElastic; elasticity: 500; startEvents: sale`);
@@ -94,7 +102,7 @@ MARCADORES.forEach(([pi, cx, cy, wt, rot], i) => {
   if (DEMO) {                                                       // demo (?demo=1..6): sin camara, el marcador inclinado para ver las capas
     t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
     const fondo = document.createElement("a-image"); fondo.setAttribute("src", `targets/postal${pi + 1}.jpg?v=${V}`);
-    fondo.setAttribute("width", 1); fondo.setAttribute("height", .667); fondo.setAttribute("material", "shader: flat"); R.prepend(fondo);
+    fondo.setAttribute("width", 1); fondo.setAttribute("height", .7048); fondo.setAttribute("material", "shader: flat"); R.prepend(fondo);
     scene.addEventListener("loaded", () => setTimeout(() => t.emit("targetFound"), 600));
   }
   scene.appendChild(t);
