@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Cruce Urbano AR</title>
 <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:#004597;font-family:system-ui,sans-serif}
+html,body{margin:0;height:100%;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;background:#004597;font-family:system-ui,sans-serif}
 #raiz{position:fixed;inset:0;overflow:hidden}  /* MindAR mide este contenedor para ubicar el video de la camara (si mide 0 se ve solo el azul) */
 #tip{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9;background:#FF0064;color:#fff;font-weight:800;
 padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;white-space:nowrap}
@@ -13,15 +13,16 @@ padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;
 <div id="tip">APUNTÁ A LA POSTAL</div>
 <div id="raiz"></div>
 <script>
+const V = 3;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
-document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
+document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=${V}; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
   color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-assets>
-    <img id="key" src="capas/key.webp"><img id="patineta" src="capas/patineta.webp"><img id="new_cuerpo" src="capas/new_cuerpo.webp"><img id="new_pierna" src="capas/new_pierna.webp"><img id="new_pierna2" src="capas/new_pierna2.webp">
-    <img id="rueda0" src="capas/rueda0.webp"><img id="rueda2" src="capas/rueda2.webp"><img id="ejes" src="capas/ejes.webp">
-    <img id="mancha" src="capas/mancha.webp">
-    <img id="m_x" src="capas/m_x.webp"><img id="m_o" src="capas/m_o.webp"><img id="m_s" src="capas/m_s.webp">
-    <img id="m_l" src="capas/m_l.webp"><img id="m_c" src="capas/m_c.webp">
+    <img id="key" src="capas/key.webp?v=${V}"><img id="patineta" src="capas/patineta.webp?v=${V}"><img id="new_cuerpo" src="capas/new_cuerpo.webp?v=${V}"><img id="new_pierna" src="capas/new_pierna.webp?v=${V}"><img id="new_pierna2" src="capas/new_pierna2.webp?v=${V}">
+    <img id="rueda0" src="capas/rueda0.webp?v=${V}"><img id="rueda2" src="capas/rueda2.webp?v=${V}"><img id="ejes" src="capas/ejes.webp?v=${V}">
+    <img id="mancha" src="capas/mancha.webp?v=${V}">
+    <img id="m_x" src="capas/m_x.webp?v=${V}"><img id="m_o" src="capas/m_o.webp?v=${V}"><img id="m_s" src="capas/m_s.webp?v=${V}">
+    <img id="m_l" src="capas/m_l.webp?v=${V}"><img id="m_c" src="capas/m_c.webp?v=${V}">
   </a-assets>
   <a-camera position="0 0 ${DEMO ? 0.95 : 0}" look-controls="enabled: false"></a-camera>
 </a-scene>`;
@@ -45,6 +46,10 @@ let skate = null;
 const scene = document.querySelector("a-scene"), tip = document.getElementById("tip");
 POSTALES.forEach((p, i) => {
   const t = document.createElement("a-entity"); t.setAttribute("mindar-image-target", "targetIndex: " + i);
+  // el marcador es solo la mitad de la ilustracion (sin la columna del logo, que es igual en las 3 postales y las confundia):
+  // este grupo vuelve a llevar todo a medidas de postal completa (ancho 1)
+  const K = 1773 / 1040, C = i === 1 ? .2067 : -.2067, R = document.createElement("a-entity");
+  R.setAttribute("scale", `${K} ${K} ${K}`); R.setAttribute("position", `${-C * K} 0 0`); t.appendChild(R);
   const capas = p.capas.concat(MISC.map((m, k) => [m[0], m[1], m[2], m[3], m[4], m[5], 300 + k * 70, true]));
   capas.forEach(([id, x, y, z, w, h, demora, esMisc, extra]) => {
     const g = document.createElement("a-entity");                 // grupo: flota (posicion)
@@ -64,15 +69,15 @@ POSTALES.forEach((p, i) => {
     im.setAttribute("scale", "0.001 0.001 0.001");
     im.setAttribute("animation__sale", `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 1100; delay: ${demora}; easing: easeOutElastic; elasticity: 500; startEvents: sale`);
     if (esMisc) im.setAttribute("animation__gira", `property: rotation; to: 0 0 ${k360(id)}; loop: true; dur: 6000; easing: linear`);
-    g.appendChild(im); t.appendChild(g);
+    g.appendChild(im); R.appendChild(g);
   });
-  t.addEventListener("targetFound", () => { tip.style.opacity = 0; [...t.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
-  t.addEventListener("targetLost", () => { tip.style.opacity = 1; [...t.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
+  t.addEventListener("targetFound", () => { tip.style.opacity = 0; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
+  t.addEventListener("targetLost", () => { tip.style.opacity = 1; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
   if (DEMO) {                                                       // demo: solo la postal elegida, inclinada para ver las capas
     if (i !== DEMO - 1) return;
     t.removeAttribute("mindar-image-target"); t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
     const fondo = document.createElement("a-image"); fondo.setAttribute("src", `targets/postal${i + 1}.jpg`);
-    fondo.setAttribute("width", 1); fondo.setAttribute("height", .667); fondo.setAttribute("material", "shader: flat"); t.prepend(fondo);
+    fondo.setAttribute("width", 1); fondo.setAttribute("height", .667); fondo.setAttribute("material", "shader: flat"); R.prepend(fondo);
     scene.addEventListener("loaded", () => setTimeout(() => t.emit("targetFound"), 600));
   }
   scene.appendChild(t);
