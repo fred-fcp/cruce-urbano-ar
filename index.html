@@ -13,13 +13,13 @@ padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;
 <div id="tip">APUNTÁ A LA POSTAL</div>
 <div id="raiz"></div>
 <script>
-const V = 3;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
+const V = 4;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
 document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
   color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-assets>
     <img id="key" src="capas/key.webp?v=${V}"><img id="patineta" src="capas/patineta.webp?v=${V}"><img id="new_cuerpo" src="capas/new_cuerpo.webp?v=${V}"><img id="new_pierna" src="capas/new_pierna.webp?v=${V}"><img id="new_pierna2" src="capas/new_pierna2.webp?v=${V}">
-    <img id="rueda0" src="capas/rueda0.webp?v=${V}"><img id="rueda2" src="capas/rueda2.webp?v=${V}"><img id="ejes" src="capas/ejes.webp?v=${V}">
+    <img id="rueda0" src="capas/rueda0.webp?v=${V}"><img id="rueda2" src="capas/rueda2.webp?v=${V}"><img id="ejes" src="capas/ejes.webp?v=${V}"><img id="frase_new" src="capas/frase_new.webp?v=${V}"><img id="frase_pat" src="capas/frase_pat.webp?v=${V}">
     <img id="mancha" src="capas/mancha.webp?v=${V}">
     <img id="m_x" src="capas/m_x.webp?v=${V}"><img id="m_o" src="capas/m_o.webp?v=${V}"><img id="m_s" src="capas/m_s.webp?v=${V}">
     <img id="m_l" src="capas/m_l.webp?v=${V}"><img id="m_c" src="capas/m_c.webp?v=${V}">
@@ -38,11 +38,13 @@ const POSTALES = [
   {capas: [["mancha",-.18,-.06,.04,.68,.312,0],["key",-.18,.02,.22,.78,.637,150]]},
   {capas: [["mancha",.18,-.06,.04,.68,.312,0],["patineta",PAT[0],PAT[1],.22,PAT[2],PAT[3],150]]
      .concat(RUEDAS.map((c, k) => ["rueda" + k, c]).filter((r, k) => k % 2 === 0).map(([id, c]) => [id, PAT[0], PAT[1], .225, PAT[2], PAT[3], 150, false, {pivote: c, anim: "rueda"}]))
-     .concat([["ejes", PAT[0], PAT[1], .23, PAT[2], PAT[3], 150]])},
+     .concat([["ejes", PAT[0], PAT[1], .23, PAT[2], PAT[3], 150], ["frase_pat", -.24, .33, .36, .38, .27, 550, false, {frase: true}]])},
   {capas: [["new_pierna",-.18,.02,.21,.62,.84,0,false,{pivote:[.175,.43], anim: "patea"}],
-           ["new_pierna2",-.18,.02,.215,.62,.84,0,false,{pivote:[.437,.372], anim: "patea2"}],["new_cuerpo",-.18,.02,.22,.62,.84,0]]},
+           ["new_pierna2",-.18,.02,.215,.62,.84,0,false,{pivote:[.437,.372], anim: "patea2"}],["new_cuerpo",-.18,.02,.22,.62,.84,0],
+           ["frase_new", -.03, .04, .36, .32, .189, 450, false, {frase: true}]]},
 ];
-let skate = null;
+let skate = null, actual = -1;
+const TIPS = ["ARRASTRÁ EL SKATE CON EL DEDO", "TOCÁ LA PANTALLA: ¡HACÉ UN TRUCO!", ""];   // ayuda que se ve con cada postal
 const scene = document.querySelector("a-scene"), tip = document.getElementById("tip");
 POSTALES.forEach((p, i) => {
   const t = document.createElement("a-entity"); t.setAttribute("mindar-image-target", "targetIndex: " + i);
@@ -68,11 +70,14 @@ POSTALES.forEach((p, i) => {
     if (id === "key") skate = img;
     im.setAttribute("scale", "0.001 0.001 0.001");
     im.setAttribute("animation__sale", `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 1100; delay: ${demora}; easing: easeOutElastic; elasticity: 500; startEvents: sale`);
+    if (i === 1 && !esMisc && id !== "mancha" && !(extra && extra.frase))   // patineta: al tocar la pantalla hace un truco (giro 360)
+      im.setAttribute("animation__truco", "property: rotation; from: 0 0 0; to: 0 360 0; dur: 800; easing: easeOutBack; startEvents: truco");
+    if (extra && extra.frase) im.setAttribute("animation__salta", "property: scale; from: 1.25 1.25 1.25; to: 1 1 1; dur: 600; easing: easeOutElastic; startEvents: truco");
     if (esMisc) im.setAttribute("animation__gira", `property: rotation; to: 0 0 ${k360(id)}; loop: true; dur: 6000; easing: linear`);
     g.appendChild(im); R.appendChild(g);
   });
-  t.addEventListener("targetFound", () => { tip.style.opacity = 0; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
-  t.addEventListener("targetLost", () => { tip.style.opacity = 1; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
+  t.addEventListener("targetFound", () => { actual = i; tip.textContent = TIPS[i]; tip.style.opacity = TIPS[i] ? 1 : 0; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
+  t.addEventListener("targetLost", () => { actual = -1; tip.textContent = "APUNTÁ A LA POSTAL"; tip.style.opacity = 1; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
   if (DEMO) {                                                       // demo: solo la postal elegida, inclinada para ver las capas
     if (i !== DEMO - 1) return;
     t.removeAttribute("mindar-image-target"); t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
@@ -84,7 +89,12 @@ POSTALES.forEach((p, i) => {
 });
 // SKATE (postal 1): se balancea solo + el usuario lo mueve arrastrando el dedo; al soltar vuelve con un rebote (resorte)
 let arr = 0, vel = 0, x0 = null;
-const ini = e => x0 = (e.touches ? e.touches[0] : e).clientX, fin = () => x0 = null;
+let xi = 0;
+const ini = e => xi = x0 = (e.touches ? e.touches[0] : e).clientX;
+const fin = e => {                                                   // toque corto (sin arrastrar) en la postal 2 = truco
+  const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX; x0 = null;
+  if (actual === 1 && Math.abs(x - xi) < 12) document.querySelectorAll("[animation__truco], [animation__salta]").forEach(el => el.emit("truco"));
+};
 const mov = e => { if (x0 === null) return; const x = (e.touches ? e.touches[0] : e).clientX; arr = Math.max(-1, Math.min(1, arr + (x - x0) / 180)); x0 = x; };
 addEventListener("touchstart", ini); addEventListener("touchmove", mov); addEventListener("touchend", fin);
 addEventListener("mousedown", ini); addEventListener("mousemove", mov); addEventListener("mouseup", fin);
