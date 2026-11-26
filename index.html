@@ -13,7 +13,7 @@ padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;
 <div id="tip">APUNTÁ A LA POSTAL Y DESCUBRÍ EL MENSAJE OCULTO</div>
 <div id="raiz"></div>
 <script>
-const V = 7;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
+const V = 8;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
 const IMGS = "key patineta new_cuerpo new_pierna new_pierna2 rueda0 rueda2 ejes frase_new invitacion ondas destellos sombra_key sombra_patineta sombra_new sombra_frase_new sombra_invitacion m_x m_o m_s m_l m_c".split(" ");
 document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
