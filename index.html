@@ -10,99 +10,112 @@ html,body{margin:0;height:100%;overflow:hidden;touch-action:none;overscroll-beha
 #tip{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9;background:#FF0064;color:#fff;font-weight:800;
 padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;white-space:nowrap}
 </style></head><body>
-<div id="tip">APUNTÁ A LA POSTAL</div>
+<div id="tip">APUNTÁ A LA POSTAL O A LA ILUSTRACIÓN</div>
 <div id="raiz"></div>
 <script>
-const V = 4;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
+const V = 5;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
+const IMGS = "key patineta new_cuerpo new_pierna new_pierna2 rueda0 rueda2 ejes frase_new frase_pat ondas destellos m_x m_o m_s m_l m_c".split(" ");
 document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
   color-space="sRGB" renderer="colorManagement: true; alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-  <a-assets>
-    <img id="key" src="capas/key.webp?v=${V}"><img id="patineta" src="capas/patineta.webp?v=${V}"><img id="new_cuerpo" src="capas/new_cuerpo.webp?v=${V}"><img id="new_pierna" src="capas/new_pierna.webp?v=${V}"><img id="new_pierna2" src="capas/new_pierna2.webp?v=${V}">
-    <img id="rueda0" src="capas/rueda0.webp?v=${V}"><img id="rueda2" src="capas/rueda2.webp?v=${V}"><img id="ejes" src="capas/ejes.webp?v=${V}"><img id="frase_new" src="capas/frase_new.webp?v=${V}"><img id="frase_pat" src="capas/frase_pat.webp?v=${V}">
-    <img id="mancha" src="capas/mancha.webp?v=${V}">
-    <img id="m_x" src="capas/m_x.webp?v=${V}"><img id="m_o" src="capas/m_o.webp?v=${V}"><img id="m_s" src="capas/m_s.webp?v=${V}">
-    <img id="m_l" src="capas/m_l.webp?v=${V}"><img id="m_c" src="capas/m_c.webp?v=${V}">
-  </a-assets>
+  <a-assets>${IMGS.map(n => `<img id="${n}" src="capas/${n}.webp?v=${V}">`).join("")}</a-assets>
   <a-camera position="0 0 ${DEMO ? 0.95 : 0}" look-controls="enabled: false"></a-camera>
 </a-scene>`;
-// Cada postal (targetIndex 0,1,2): capas a distinta altura (z) = efecto pop-up. Al encontrarla salen con rebote y flotan.
-// [id, x, y, z, ancho, alto, demora ms]   (la postal mide 1 x 0.667; el centro es 0,0)
+
+// COMPOSICION = la del archivo Postales_A3_CMYK.ai (medidas de Illustrator). Unidades de postal: ancho 1 (15 cm), alto 0.667,
+// centro 0,0, y hacia arriba. Capa: [id, x, y, z, ancho, alto, demora ms, extra]. z = altura sobre la postal (efecto pop-up).
 const MISC = [["m_x",-.42,.25,.32,.11,.088],["m_o",.40,.27,.38,.09,.092],["m_s",.43,-.22,.30,.1,.084],["m_c",-.40,-.24,.35,.12,.026],["m_l",.05,.33,.28,.14,.022]];
-const PAT = [.18, .02, .82, .66], RUEDAS = [[.161, .243], [.095, .519], [.772, .79], [.545, .902]];
-const GIRO = {   // animaciones de las piezas que giran sobre un pivote
+const GIRO = {   // piezas que giran sobre un pivote
   patea:  "from: 0 0 -14; to: 0 0 16; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
   patea2: "from: 0 0 5; to: 0 0 -5; dir: alternate; loop: true; dur: 420; easing: easeInOutQuad",
   rueda:  "from: 0 0 0; to: 0 0 -1080; loop: true; dur: 3200; easing: easeInCubic"};   // lento -> rapido, en loop
+const ONDA = w => ["ondas", 0, w, .03, 1.04, .151, 0, {ola: true}];                     // la onda rosa de abajo (se mueve como agua)
+const PAT = [.2028, .0541, .4851, .3909, -16.28], NEW = [-.2167, .0081, .4435, .6005];
 const POSTALES = [
-  {capas: [["mancha",-.18,-.06,.04,.68,.312,0],["key",-.18,.02,.22,.78,.637,150]]},
-  {capas: [["mancha",.18,-.06,.04,.68,.312,0],["patineta",PAT[0],PAT[1],.22,PAT[2],PAT[3],150]]
-     .concat(RUEDAS.map((c, k) => ["rueda" + k, c]).filter((r, k) => k % 2 === 0).map(([id, c]) => [id, PAT[0], PAT[1], .225, PAT[2], PAT[3], 150, false, {pivote: c, anim: "rueda"}]))
-     .concat([["ejes", PAT[0], PAT[1], .23, PAT[2], PAT[3], 150], ["frase_pat", -.24, .33, .36, .38, .27, 550, false, {frase: true}]])},
-  {capas: [["new_pierna",-.18,.02,.21,.62,.84,0,false,{pivote:[.175,.43], anim: "patea"}],
-           ["new_pierna2",-.18,.02,.215,.62,.84,0,false,{pivote:[.437,.372], anim: "patea2"}],["new_cuerpo",-.18,.02,.22,.62,.84,0],
-           ["frase_new", -.03, .04, .36, .32, .189, 450, false, {frase: true}]]},
+  {ilu: [-.1866, .0141, .5631, 0], capas: [ONDA(-.2894), ["key", -.1866, .0141, .22, .5631, .4603, 150]]},
+  {ilu: [PAT[0], PAT[1], PAT[2], PAT[4]], capas: [ONDA(-.2843), ["destellos", .1968, -.0033, .1, .5197, .4822, 0, {destello: true}]]
+     .concat([["patineta"], ["rueda0", .161, .243], ["rueda2", .772, .79], ["ejes"]].map(([id, px, py], k) =>
+       [id, PAT[0], PAT[1], .22 + k * .004, PAT[2], PAT[3], 150, {rot: PAT[4], truco: true, ...(px ? {pivote: [px, py], anim: "rueda"} : {})}]))
+     .concat([["frase_pat", -.24, .33, .36, .38, .27, 550, {frase: true}]])},
+  {ilu: [NEW[0], NEW[1], NEW[2], 0], capas: [ONDA(-.2899),
+     ["new_pierna", ...NEW.slice(0, 2), .21, NEW[2], NEW[3], 0, {pivote: [.175, .43], anim: "patea"}],
+     ["new_pierna2", ...NEW.slice(0, 2), .215, NEW[2], NEW[3], 0, {pivote: [.437, .372], anim: "patea2"}],
+     ["new_cuerpo", ...NEW.slice(0, 2), .22, NEW[2], NEW[3], 0],
+     ["frase_new", -.0707, .0498, .36, .1733, .1133, 450, {frase: true}]]},
 ];
-let skate = null, actual = -1;
-const TIPS = ["ARRASTRÁ EL SKATE CON EL DEDO", "TOCÁ LA PANTALLA: ¡HACÉ UN TRUCO!", ""];   // ayuda que se ve con cada postal
-const scene = document.querySelector("a-scene"), tip = document.getElementById("tip");
-POSTALES.forEach((p, i) => {
-  const t = document.createElement("a-entity"); t.setAttribute("mindar-image-target", "targetIndex: " + i);
-  // el marcador es solo la mitad de la ilustracion (sin la columna del logo, que es igual en las 3 postales y las confundia):
-  // este grupo vuelve a llevar todo a medidas de postal completa (ancho 1)
-  const K = 1773 / 1040, C = i === 1 ? .2067 : -.2067, R = document.createElement("a-entity");
-  R.setAttribute("scale", `${K} ${K} ${K}`); R.setAttribute("position", `${-C * K} 0 0`); t.appendChild(R);
-  const capas = p.capas.concat(MISC.map((m, k) => [m[0], m[1], m[2], m[3], m[4], m[5], 300 + k * 70, true]));
-  capas.forEach(([id, x, y, z, w, h, demora, esMisc, extra]) => {
-    const g = document.createElement("a-entity");                 // grupo: flota (posicion)
-    g.setAttribute("position", `${x} ${y} ${z}`);
-    g.setAttribute("animation__flota", `property: position; to: ${x} ${y + (esMisc ? .02 : .012)} ${z + .03}; dir: alternate; loop: true; dur: ${1600 + demora}; easing: easeInOutSine`);
-    let im = document.createElement("a-image");                    // imagen: sale con rebote (escala) y las misc giran
-    const img = im; img.setAttribute("src", "#" + id); img.setAttribute("width", w); img.setAttribute("height", h);
+// MARCADORES (orden de targets.mind): las 3 postales (solo el lado de la ilustracion) + las 3 ilustraciones solas, para que la
+// AR funcione tambien al escanearlas en el afiche, la aficheta u otra pieza. [postal, centro x, centro y, ancho, giro]
+// (centro/ancho/giro = que parte de la postal es el marcador; el grupo lleva todo a esas medidas)
+const MARCADORES = [[0, -.2065, .0737, .5869, 0], [1, .2144, .0737, .5711, 0], [2, -.2065, .0737, .5869, 0]]
+  .concat(POSTALES.map((p, i) => [i, p.ilu[0], p.ilu[1], p.ilu[2], p.ilu[3]]));
+const TIPS = ["ARRASTRÁ EL SKATE CON EL DEDO", "TOCÁ LA PANTALLA: ¡HACÉ UN TRUCO!", ""];
+const scene = document.querySelector("a-scene"), tip = document.getElementById("tip"), skates = [];
+let actual = -1;
+
+MARCADORES.forEach(([pi, cx, cy, wt, rot], i) => {
+  if (DEMO && i !== DEMO - 1) return;
+  const t = document.createElement("a-entity"); if (!DEMO) t.setAttribute("mindar-image-target", "targetIndex: " + i);
+  const a = rot * Math.PI / 180, k = 1 / wt, R = document.createElement("a-entity");   // postal -> medidas del marcador
+  R.setAttribute("scale", `${k} ${k} ${k * .4}`);   // altura (z) mas baja: las capas no se corren de lo impreso al mirar en angulo R.setAttribute("rotation", `0 0 ${-rot}`);
+  R.setAttribute("position", `${-k * (cx * Math.cos(-a) - cy * Math.sin(-a))} ${-k * (cx * Math.sin(-a) + cy * Math.cos(-a))} 0`);
+  t.appendChild(R);
+  POSTALES[pi].capas.concat(MISC.map((m, n) => [...m, 300 + n * 70, {misc: true}])).forEach(([id, x, y, z, w, h, demora, ex = {}]) => {
+    const g = document.createElement("a-entity");                  // grupo: posicion, giro de base y flotacion
+    g.setAttribute("position", `${x} ${y} ${z}`); if (ex.rot) g.setAttribute("rotation", `0 0 ${ex.rot}`);
+    if (!ex.ola) g.setAttribute("animation__flota", `property: position; to: ${x} ${y + (ex.misc ? .02 : .012)} ${z + .03}; dir: alternate; loop: true; dur: ${1600 + demora}; easing: easeInOutSine`);
+    const img = document.createElement("a-image");
+    img.setAttribute("src", "#" + id); img.setAttribute("width", w); img.setAttribute("height", h);
     img.setAttribute("material", "transparent: true; alphaTest: 0.02; shader: flat");
-    if (extra && extra.pivote) {                                    // pieza que gira sobre un pivote (piernas, ruedas)
-      const px = (extra.pivote[0] - .5) * w, py = (.5 - extra.pivote[1]) * h;
-      im = document.createElement("a-entity"); const pv = document.createElement("a-entity");
-      pv.setAttribute("position", `${px} ${py} 0`); img.setAttribute("position", `${-px} ${-py} 0`);
-      pv.setAttribute("animation__giro", "property: rotation; " + GIRO[extra.anim]);
-      pv.appendChild(img); im.appendChild(pv);
+    let im = img;                                                   // im: sale con rebote (escala)
+    if (ex.pivote) {                                                // pieza que gira sobre un pivote (piernas, ruedas)
+      const px = (ex.pivote[0] - .5) * w, py = (.5 - ex.pivote[1]) * h, pv = document.createElement("a-entity");
+      im = document.createElement("a-entity"); pv.setAttribute("position", `${px} ${py} 0`); img.setAttribute("position", `${-px} ${-py} 0`);
+      pv.setAttribute("animation__giro", "property: rotation; " + GIRO[ex.anim]); pv.appendChild(img); im.appendChild(pv);
     }
-    if (id === "key") skate = img;
+    if (ex.ola) {                                                   // onda: vaiven + ondula desde abajo (como agua)
+      const o1 = document.createElement("a-entity"), o2 = document.createElement("a-entity"); im = document.createElement("a-entity");
+      o1.setAttribute("animation__x", "property: position; from: -.012 0 0; to: .012 0 0; dir: alternate; loop: true; dur: 2100; easing: easeInOutSine");
+      o1.setAttribute("animation__r", "property: rotation; from: 0 0 -1.2; to: 0 0 1.2; dir: alternate; loop: true; dur: 1700; easing: easeInOutSine");
+      o2.setAttribute("position", `0 ${-h / 2} 0`); img.setAttribute("position", `0 ${h / 2} 0`);
+      o2.setAttribute("animation__s", "property: scale; from: 1 .8 1; to: 1 1.25 1; dir: alternate; loop: true; dur: 1300; easing: easeInOutSine");
+      o2.appendChild(img); o1.appendChild(o2); im.appendChild(o1);
+    }
+    if (ex.destello) img.setAttribute("animation__brilla", "property: scale; from: .94 .94 1; to: 1.06 1.06 1; dir: alternate; loop: true; dur: 700; easing: easeInOutSine");
     im.setAttribute("scale", "0.001 0.001 0.001");
     im.setAttribute("animation__sale", `property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 1100; delay: ${demora}; easing: easeOutElastic; elasticity: 500; startEvents: sale`);
-    if (i === 1 && !esMisc && id !== "mancha" && !(extra && extra.frase))   // patineta: al tocar la pantalla hace un truco (giro 360)
-      im.setAttribute("animation__truco", "property: rotation; from: 0 0 0; to: 0 360 0; dur: 800; easing: easeOutBack; startEvents: truco");
-    if (extra && extra.frase) im.setAttribute("animation__salta", "property: scale; from: 1.25 1.25 1.25; to: 1 1 1; dur: 600; easing: easeOutElastic; startEvents: truco");
-    if (esMisc) im.setAttribute("animation__gira", `property: rotation; to: 0 0 ${k360(id)}; loop: true; dur: 6000; easing: linear`);
+    if (ex.truco) im.setAttribute("animation__truco", "property: rotation; from: 0 0 0; to: 0 360 0; dur: 800; easing: easeOutBack; startEvents: truco");
+    if (ex.frase) im.setAttribute("animation__salta", "property: scale; from: 1.25 1.25 1.25; to: 1 1 1; dur: 600; easing: easeOutElastic; startEvents: truco");
+    if (ex.misc) im.setAttribute("animation__gira", `property: rotation; to: 0 0 ${id === "m_o" || id === "m_c" ? -360 : 360}; loop: true; dur: 6000; easing: linear`);
+    if (id === "key") skates.push(img);
     g.appendChild(im); R.appendChild(g);
   });
-  t.addEventListener("targetFound", () => { actual = i; tip.textContent = TIPS[i]; tip.style.opacity = TIPS[i] ? 1 : 0; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
-  t.addEventListener("targetLost", () => { actual = -1; tip.textContent = "APUNTÁ A LA POSTAL"; tip.style.opacity = 1; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
-  if (DEMO) {                                                       // demo: solo la postal elegida, inclinada para ver las capas
-    if (i !== DEMO - 1) return;
-    t.removeAttribute("mindar-image-target"); t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
-    const fondo = document.createElement("a-image"); fondo.setAttribute("src", `targets/postal${i + 1}.jpg`);
+  t.addEventListener("targetFound", () => { actual = pi; tip.textContent = TIPS[pi]; tip.style.opacity = TIPS[pi] ? 1 : 0; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.emit("sale")); });
+  t.addEventListener("targetLost", () => { actual = -1; tip.textContent = "APUNTÁ A LA POSTAL O A LA ILUSTRACIÓN"; tip.style.opacity = 1; [...R.children].forEach(g => g.firstElementChild && g.firstElementChild.setAttribute("scale", "0.001 0.001 0.001")); });
+  if (DEMO) {                                                       // demo (?demo=1..6): sin camara, el marcador inclinado para ver las capas
+    t.setAttribute("rotation", "-28 18 0"); tip.style.display = "none";
+    const fondo = document.createElement("a-image"); fondo.setAttribute("src", `targets/postal${pi + 1}.jpg?v=${V}`);
     fondo.setAttribute("width", 1); fondo.setAttribute("height", .667); fondo.setAttribute("material", "shader: flat"); R.prepend(fondo);
     scene.addEventListener("loaded", () => setTimeout(() => t.emit("targetFound"), 600));
   }
   scene.appendChild(t);
 });
+
 // SKATE (postal 1): se balancea solo + el usuario lo mueve arrastrando el dedo; al soltar vuelve con un rebote (resorte)
-let arr = 0, vel = 0, x0 = null;
-let xi = 0;
+// PATINETA (postal 2): un toque corto hace el truco
+let arr = 0, vel = 0, x0 = null, xi = 0;
 const ini = e => xi = x0 = (e.touches ? e.touches[0] : e).clientX;
-const fin = e => {                                                   // toque corto (sin arrastrar) en la postal 2 = truco
+const mov = e => { if (x0 === null) return; const x = (e.touches ? e.touches[0] : e).clientX; arr = Math.max(-1, Math.min(1, arr + (x - x0) / 180)); x0 = x; };
+const fin = e => {
   const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX; x0 = null;
   if (actual === 1 && Math.abs(x - xi) < 12) document.querySelectorAll("[animation__truco], [animation__salta]").forEach(el => el.emit("truco"));
 };
-const mov = e => { if (x0 === null) return; const x = (e.touches ? e.touches[0] : e).clientX; arr = Math.max(-1, Math.min(1, arr + (x - x0) / 180)); x0 = x; };
 addEventListener("touchstart", ini); addEventListener("touchmove", mov); addEventListener("touchend", fin);
 addEventListener("mousedown", ini); addEventListener("mousemove", mov); addEventListener("mouseup", fin);
 (function loop(t) {
-  if (x0 === null) { vel = (vel - arr * 0.02) * 0.92; arr += vel; }                     // resorte de vuelta
-  if (skate) { const b = Math.sin(t / 450) * 0.12; skate.object3D.rotation.z = b - arr * 0.45; skate.object3D.position.x = Math.sin(t / 900) * .03 + arr * .14; }
+  if (x0 === null) { vel = (vel - arr * 0.02) * 0.92; arr += vel; }
+  const b = Math.sin(t / 450) * 0.12;
+  skates.forEach(s => { s.object3D.rotation.z = b - arr * 0.45; s.object3D.position.x = Math.sin(t / 900) * .03 + arr * .14; });
   requestAnimationFrame(loop);
 })(0);
-function k360(id) { return id === "m_o" || id === "m_c" ? -360 : 360; }
 </script>
 </body></html>
