@@ -7,13 +7,13 @@
 <style>
 html,body{margin:0;height:100%;overflow:hidden;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;background:#004597;font-family:system-ui,sans-serif}
 #raiz{position:fixed;inset:0;overflow:hidden}  /* MindAR mide este contenedor para ubicar el video de la camara (si mide 0 se ve solo el azul) */
-#tip{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9;background:#FF0064;color:#fff;font-weight:800;
+#tip{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 18px);transform:translateX(-50%);z-index:9;background:#FF0064;color:#fff;font-weight:800;
 padding:12px 20px;border-radius:12px;letter-spacing:.5px;transition:opacity .4s;width:max-content;max-width:86vw;text-align:center}
 </style></head><body>
 <div id="tip">APUNTÁ A LA POSTAL Y DESCUBRÍ EL MENSAJE OCULTO</div>
 <div id="raiz"></div>
 <script>
-const V = 8;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
+const V = 9;                                                      // version: cambiarla al actualizar para que el telefono no use archivos viejos
 const DEMO = +new URLSearchParams(location.search).get("demo");
 const IMGS = "key patineta new_cuerpo new_pierna new_pierna2 rueda0 rueda2 ejes frase_new invitacion ondas destellos sombra_key sombra_patineta sombra_new sombra_frase_new sombra_invitacion m_x m_o m_s m_l m_c".split(" ");
 document.getElementById("raiz").innerHTML = `<a-scene ${DEMO ? "background=\"color: #222\"" : "mindar-image=\"imageTargetSrc: targets.mind?v=" + V + "; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001\""}
